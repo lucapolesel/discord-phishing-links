@@ -1,0 +1,37 @@
+name: "Sort and update plain text files"
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events when some specific files change
+  pull_request:
+    paths:
+      - "domain-list.json"
+      - "suspicious-list.json"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  update-repository:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@master
+        with:
+          persist-credentials: false # use personal token instead of GITHUB_TOKEN
+          fetch-depth: 0
+
+      # Use JQ for json sorting and json parser
+      - uses: sergeysova/jq-action@v2
+
+      - name: Check if there is any duplicate in domain-list.json
+        continue-on-error: false
+        run: "jq '(.domains | group_by(.) | map(select(length>1)) | .[0] | if . == null then true else halt_error end)' domain-list.json
+
+      - name: Check if there is any duplicate in suspicious-list.json
+        continue-on-error: false
+        run: "jq '(.domains | group_by(.) | map(select(length>1)) | .[0] | if . == null then true else halt_error end)' suspicious-list.json
+        
